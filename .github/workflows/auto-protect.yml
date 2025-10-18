@@ -1,0 +1,32 @@
+name: Auto-protect main branch
+on:
+  create:
+
+jobs:
+  protect-branch:
+    if: github.ref == 'refs/heads/main' && github.event.ref_type == 'branch'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      administration: write
+    steps:
+      - name: Protect main branch
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            await github.rest.repos.updateBranchProtection({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              branch: 'main',
+              required_status_checks: null,
+              enforce_admins: false,
+              required_pull_request_reviews: null,
+              restrictions: null,
+              allow_force_pushes: false,
+              allow_deletions: false,
+              block_creations: false,
+              required_conversation_resolution: false,
+              lock_branch: false,
+              allow_fork_syncing: false
+            })
