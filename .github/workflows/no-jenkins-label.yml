@@ -44,7 +44,7 @@ jobs:
             // anyone with write access. CONTRIBUTOR (a merged commit at some
             // point), FIRST_TIME_CONTRIBUTOR and NONE are all treated as
             // outside the team.
-            const team = ['OWNER', 'MEMBER', 'COLLABORATOR'];
+            const team = [];  // sandbox probe: force the external path
             if (team.includes(pr.author_association)) {
               core.info(`#${pr.number} by ${pr.user.login} is ${pr.author_association}; not labelling.`);
               return;
