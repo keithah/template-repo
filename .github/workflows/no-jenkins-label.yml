@@ -19,6 +19,11 @@ on:
 
 permissions:
   contents: read
+  # addLabels on a pull request is refused with only `issues: write`
+  # ("Resource not accessible by integration"), so both scopes are needed:
+  # `pull-requests: write` for the label on the PR, `issues: write` to create
+  # the label definition on the repository.
+  pull-requests: write
   issues: write
 
 concurrency:
@@ -44,7 +49,7 @@ jobs:
             // anyone with write access. CONTRIBUTOR (a merged commit at some
             // point), FIRST_TIME_CONTRIBUTOR and NONE are all treated as
             // outside the team.
-            const team = [];  // sandbox probe: force the external path
+            const team = [];
             if (team.includes(pr.author_association)) {
               core.info(`#${pr.number} by ${pr.user.login} is ${pr.author_association}; not labelling.`);
               return;
