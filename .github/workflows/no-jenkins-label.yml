@@ -1,0 +1,56 @@
+name: 'Label pull requests opened outside the team'
+
+# Pull requests opened from outside the xbmc organisation do not need a Jenkins
+# build to be reviewed, and each one occupies the single serialised
+# BuildMulti-PR slot for its full platform matrix. Labelling them No-Jenkins
+# lets Jenkins' ghprb blackListLabels skip the build without blocking the merge
+# (unlike "Jenkins: Ignore", which .github/mergeable.yml also rejects).
+on:
+  pull_request_target:
+    types: [opened, reopened, ready_for_review, synchronize, converted_to_draft]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: 'no-jenkins-label-${{ github.event.pull_request.number }}'
+  cancel-in-progress: true
+
+jobs:
+  label:
+    if: github.event_name == 'pull_request_target'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Add No-Jenkins to pull requests from outside the organisation
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            const pr = context.payload.pull_request;
+
+            // author_association is the only membership signal available to a
+            // workflow token without organisation admin scope. MEMBER covers
+            // organisation members and OWNER the repository owner; COLLABORATOR
+            // covers anyone with write access. Everyone else (CONTRIBUTOR and
+            // FIRST_TIME_CONTRIBUTOR, plus NONE for users with no association)
+            // is treated as outside the team.
+            const team = ['OWNER', 'MEMBER', 'COLLABORATOR'];
+            if (team.includes(pr.author_association)) {
+              core.info(`#${pr.number} by ${pr.user.login} is ${pr.author_association}; not labelling.`);
+              return;
+            }
+
+            if ((pr.labels ?? []).some((label) => label.name === 'No-Jenkins')) {
+              core.info(`#${pr.number} already has No-Jenkins.`);
+              return;
+            }
+
+            await github.rest.issues.addLabels({
+              owner,
+              repo,
+              issue_number: pr.number,
+              labels: ['No-Jenkins'],
+            });
+            core.info(`Added No-Jenkins to #${pr.number} by ${pr.user.login} (${pr.author_association}).`);
